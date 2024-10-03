@@ -16,7 +16,6 @@ func main() {
 	mainBranch := flag.String("main-branch", "main", "Name of the main branch")
 	flag.Parse()
 
-	// Get the file path from command-line arguments or use default
 	var filePath string
 	args := flag.Args()
 	if len(args) > 0 {
@@ -25,20 +24,17 @@ func main() {
 		filePath = "VERSION"
 	}
 
-	// Get absolute path of the version file
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		fmt.Printf("Error resolving path: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Check if file exists
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
 		fmt.Printf("Error: VERSION file not found at %s\n", absPath)
 		os.Exit(1)
 	}
 
-	// Check if on main branch
 	currentBranch, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err != nil {
 		fmt.Printf("Error getting current branch: %v\n", err)
@@ -49,7 +45,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Check for uncommitted changes
 	status, err := exec.Command("git", "status", "--porcelain").Output()
 	if err != nil {
 		fmt.Printf("Error checking git status: %v\n", err)
@@ -60,7 +55,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Read current version
 	content, err := os.ReadFile(absPath)
 	if err != nil {
 		fmt.Printf("Error reading file %s: %v\n", absPath, err)
@@ -93,21 +87,18 @@ func main() {
 
 	newVersion := fmt.Sprintf("%d.%d.%d", majorVer, minorVer, patchVer)
 
-	// Write new version
-	err = os.WriteFile(absPath, []byte(newVersion), 0644)
+	err = os.WriteFile(absPath, []byte(newVersion), 0o644)
 	if err != nil {
 		fmt.Printf("Error writing to %s: %v\n", absPath, err)
 		os.Exit(1)
 	}
 
-	// Check if version has changed
 	_, err = exec.Command("git", "diff", "--exit-code", "--", absPath).CombinedOutput()
 	if err == nil {
 		fmt.Println("Error: Version has not changed!")
 		os.Exit(1)
 	}
 
-	// Commit the change
 	commitMsg := fmt.Sprintf("release: v%s", newVersion)
 	cmd := exec.Command("git", "commit", "-m", commitMsg, "--", absPath)
 	cmd.Stdout = os.Stdout
